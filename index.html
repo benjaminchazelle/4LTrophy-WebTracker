@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <title>Justwoodit Live</title>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+  
+    <div id="map"></div>
+    <script>
+
+	//Conversion des degrés en radian
+function convertRad(input){
+        return (Math.PI * input)/180;
+}
+ 
+function Distance(lat_a_degre, lon_a_degre, lat_b_degre, lon_b_degre){
+     
+        R = 6378000 //Rayon de la terre en mètre 
+ 
+    lat_a = convertRad(lat_a_degre);
+    lon_a = convertRad(lon_a_degre);
+    lat_b = convertRad(lat_b_degre);
+    lon_b = convertRad(lon_b_degre);
+     
+    d = R * (Math.PI/2 - Math.asin( Math.sin(lat_b) * Math.sin(lat_a) + Math.cos(lon_b - lon_a) * Math.cos(lat_b) * Math.cos(lat_a)))
+    return d;
+}
+// This example creates a 2-pixel-wide red polyline showing the path of William
+// Kingsford Smith's first trans-Pacific flight between Oakland, CA, and
+// Brisbane, Australia.
+
+
+  line = [];
+  last_time = 0;
+  
+  flightPath = null;
+  
+  map = null;
+  marker = null;
+  
+	infowindow = null;
+	infowindow_opened = false;
+
+
+pos_a = null;
+pos_b = null;
+
+  
+  
+function initMap() {
+  map = new google.maps.Map(document.getElementById('map'), {
+    zoom: 14,
+    center: {lat: 0, lng: 0},
+    mapTypeId: google.maps.MapTypeId.TERRAIN
+  });
+
+   infowindow = new google.maps.InfoWindow({
+    content: ""
+  });
+
+  flightPath = new google.maps.Polyline({
+    path: line,
+    geodesic: true,
+    strokeColor: '#e74c3c',
+    strokeOpacity: 1.0,
+    strokeWeight: 5
+  });
+
+  flightPath.setMap(map);
+  
+  loop();
+}
+
+function loop() {
+
+//console.log(flightPath);
+
+   $.getJSON("json.php?time=0", function(data, status){
+
+		if(status == "success") {
+			line=[];
+			for(var i = 0; i < data.length;i++) {
+				
+				//line.push({lat: parseFloat(data[i].GPSlat), lng: parseFloat(data[i].GPSlng)});
+				line.push({lat: parseFloat(data[i].GPSlat), lng: parseFloat(data[i].GPSlng), time : parseInt(data[i].time)});
+				//line.push(data[i]);
+				last_time = parseFloat(data[i].time);
+			}
+			
+				if (line.length >= 2){
+				
+					var _a = line[line.length-2];
+					var _b = line[line.length-1];
+					
+					
+					
+					distance = Distance(_a.lat, _a.lng, _b.lat, _b.lng);
+					//distance = Distance(46.3242273, 4.847812699999963, 46.200000, 5.216667);
+					
+					time = (_b.time - _a.time);
+					
+					
+					vitesse = ( distance / time ) * 3.6;
+					vitesse = Math.round(vitesse, 1);
+					
+					
+					var date = (new Date(_b.time*1000)).toLocaleString();
+					
+					infowindow.setContent(date + "<h2>Nous sommes ici</h2>");
+					
+					if(!infowindow_opened) {
+					
+					
+							marker = new google.maps.Marker({
+								position: {lat: _b.lat, lng: _b.lng},
+								map: map
+								
+							  });
+					
+						  marker.addListener('click', function() {
+							infowindow.open(map, marker);
+						  });
+
+						map.setCenter({lat: _b.lat, lng: _b.lng});
+
+					
+						infowindow.open(map, marker);
+						
+						console.log(marker);
+						
+					}
+					
+					if(marker != null)
+						marker.setPosition({lat: _b.lat, lng: _b.lng});
+				
+						
+					infowindow_opened = true;
+				}		
+			
+	
+
+		
+		flightPath.setPath(line);
+		
+		}
+		
+
+    });
+	
+	setTimeout(function() {loop();}, 1000*60);
+};
+
+
+    </script>
+	
+
+	
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?callback=initMap"></script>
+		
+		<div style="position:fixed;top:10px;right:10px;">
+			<button onclick="$('#tw').toggle();">Masquer/Afficher</button><br />
+			<div id="tw">
+                                    <a class="twitter-timeline" data-dnt="true" href="https://twitter.com/b3njich4z" data-widget-id="697149205287202816"></a>
+            <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+"://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+			</div>
+          
+       </div>   
+  </body>
+</html>
